@@ -10,10 +10,11 @@
 (defclass func-co ()
   ((name :initarg :name :accessor name)
    (instr :initarg :instr :accessor instr)
-   (consts :initarg :consts :accessor consts)))
+   (consts :initarg :consts :accessor consts)
+   (vars :initarg :vars :accessor vars)))
 
-(defun make-func-co (name instr consts)
-  (make-instance 'func-co :name name :instr instr :consts consts))
+(defun make-func-co (name instr consts vars)
+  (make-instance 'func-co :name name :instr instr :consts consts :vars vars))
 
 ; example function code
 (setq ex1
@@ -22,7 +23,21 @@
      (op-load-value 1)
      (op-add)
      (op-print))
-   '(7 5)))
+    '(7 5)
+    '()))
+
+(setq ex2
+      (make-func-co "add-vars"
+                    '((op-load-value 0)
+                      (op-store-name 0)
+                      (op-load-value 1)
+                      (op-store-name 1)
+                      (op-load-name 0)
+                      (op-load-name 1)
+                      (op-add)
+                      (op-print))
+                    '(1 2)
+                    '(a b)))
 
 (defclass vm ()
   ((stack :initform '() :accessor stack)
@@ -62,3 +77,9 @@
 (defop op-load-value
   (let ((val (nth arg (consts fun))))
     (st-push val)))
+
+(defop op-store-name
+  (setf (gethash arg (env vm)) (st-pop)))
+
+(defop op-load-name
+  (st-push (gethash arg (env vm))))
