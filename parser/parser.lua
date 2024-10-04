@@ -28,7 +28,9 @@ function handle_node(node)
    if n == "ident" or n == "numeral" then
       out:write(n, string.sub(code, node:start_byte(), node:end_byte()))
    else
-      out:write(node:name())
+      -- maybe risky if there is use of _ as an operator
+      n = string.gsub(n, "_", "-")
+      out:write(n)
    end
 
    for child in node:named_children() do
