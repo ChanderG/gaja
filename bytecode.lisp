@@ -54,42 +54,46 @@
 (defopcode1 op/load-name 130)
 (defopcode1 op/store-name 131)
 
-(with-open-file (stream "sample.out"
-                        :direction :output
-                        :if-exists :overwrite
-                        :element-type '(unsigned-byte 8))
-  ;; our special magic string
-  (write-sequence '(#x0b #x89 #x09 #x50) stream)
-  (write-sequence (mapcar 'char-code '(#\g #\a #\j #\a)) stream)
+(defun serialize-co-to-file (fco filename)
+  (with-open-file (stream filename
+                          :direction :output
+                          :if-exists :overwrite
+                          :if-does-not-exist :create
+                          :element-type '(unsigned-byte 8))
+    ;; our special magic string
+    (write-sequence '(#x0b #x89 #x09 #x50) stream)
+    (write-sequence (mapcar 'char-code '(#\g #\a #\j #\a)) stream)
 
-  ;; start writing a function code obj
-  (write-byte t/fco-start stream)
+    ;; start writing a function code obj
+    (write-byte t/fco-start stream)
 
-  ;; storing the function name
-  (let* ((name (name ex1)))
-    (write-byte t/short-string stream)
-    (write-byte 4 stream)
-    (write-sequence (map 'list 'char-code name) stream)
-    )
+    ;; storing the function name
+    (let* ((name (name fco)))
+      (write-byte t/short-string stream)
+      (write-byte 4 stream)
+      (write-sequence (map 'list 'char-code name) stream)
+      )
 
-  ;; followed by a list of instructions
-  (dolist (ins (instr ex1))
-    (let* ((opname (car ins))
-           (opname-str (symbol-name opname))
-           (new-str (substitute #\/ #\- opname-str :count 1))
-           (op-sym (eval (read-from-string new-str))))
-      ;; write out the opcode itself
-      (write-byte op-sym stream)
-      ;; write down the argument here, if present
-      ;; for now - assumed to be one byte only
-      (if (eq (length ins) 2)
-        (write-byte (cadr ins) stream))))
+    ;; followed by a list of instructions
+    (dolist (ins (instr fco))
+      (let* ((opname (car ins))
+             (opname-str (symbol-name opname))
+             (new-str (substitute #\/ #\- opname-str :count 1))
+             (op-sym (eval (read-from-string new-str))))
+        ;; write out the opcode itself
+        (write-byte op-sym stream)
+        ;; write down the argument here, if present
+        ;; for now - assumed to be one byte only
+        (if (eq (length ins) 2)
+            (write-byte (cadr ins) stream))))
 
-  (write-byte t/fco-instr-end stream)
+    (write-byte t/fco-instr-end stream)
 
-  ;; end func co obj
-  (write-byte t/fco-end stream)
-  )
+    ;; end func co obj
+    (write-byte t/fco-end stream)
+    ))
+
+(serialize-co-to-file ex1 "sample.gaja")
 
 ; example function code
 (setq ex1
