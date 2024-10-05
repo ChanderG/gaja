@@ -31,6 +31,7 @@ module.exports = grammar({
       ),
 
       _stmt: $ => choice(
+          $.print_stmt,
           $.assign_stmt,
       ),
 
@@ -39,6 +40,11 @@ module.exports = grammar({
           choice("+", "-"),
           $._expr
       )),
+
+      print_stmt: $ => seq(
+          "print",
+          $._expr
+      ),
 
       assign_stmt: $ => seq(
           $.ident,

@@ -23,6 +23,10 @@
     (handle-expr fco arg))
   (emit fco 'op-add))
 
+(defmethod ck-print-stmt ((fco func-co) exp)
+  (handle-expr fco (second exp))
+  (emit fco 'op-print))
+
 (defun ck-func (func)
   (let* ((name (cadr (nth 1 func)))
          (bl (nth 2 func))
