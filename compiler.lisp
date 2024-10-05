@@ -18,6 +18,13 @@
     (setf (consts fco) (append curr-consts (cdr exp)))
     (emit fco 'op-load-value len)))
 
+;; only called on variable use
+(defmethod ck-ident ((fco func-co) exp)
+  (let* ((pos (position (cadr exp) (vars fco))))
+    ;; if pos is nil, it means that a variable has been used without defining
+    (assert pos)
+    (emit fco 'op-load-name pos)))
+
 (defmethod ck-arith-expr ((fco func-co) exp)
   (dolist (arg (cdr exp))
     (handle-expr fco arg))
@@ -26,6 +33,19 @@
 (defmethod ck-print-stmt ((fco func-co) exp)
   (handle-expr fco (second exp))
   (emit fco 'op-print))
+
+(defmethod ck-assign-stmt ((fco func-co) exp)
+  (let* ((varname (second (second exp)))
+         (pos (position varname (vars fco)))
+         (num-vars (length (vars fco))))
+    (handle-expr fco (third exp))
+    (if pos
+        ;; variable already exists in our defn
+        (emit fco 'op-store-name pos)
+        ;; variable does not exist, need to create it
+        (progn
+          (setf (vars fco) (append (vars fco) (list varname)))
+          (emit fco 'op-store-name num-vars)))))
 
 (defun ck-func (func)
   (let* ((name (cadr (nth 1 func)))
