@@ -1,5 +1,3 @@
-(setq kapi1 "./parser/out.kapi")
-
 (defun symbol-append (&rest symbols)
   (intern (apply #'concatenate 'string
                  (mapcar #'symbol-name symbols))))
@@ -69,4 +67,5 @@
                 (read stream))))
     (compile-kapi exp)))
 
+(setq kapi1 "./parser/out.kapi")
 (compile-kapi-file kapi1)
