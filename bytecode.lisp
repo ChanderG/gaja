@@ -21,6 +21,11 @@
 (defmacro deftag (name val)
   `(defconstant ,name ,val))
 
+(defmacro defopcode0 (name val)
+  `(defconstant ,name ,val))
+(defmacro defopcode1 (name val)
+  `(defconstant ,name ,val))
+
 ;; tags from 0-9 reserved for special use later
 
 ;; 10-40 for fundamental types
@@ -29,11 +34,25 @@
 ; next byte refers directly to a single byte char, no length
 (deftag t/char 11)
 ; next byte refers to a an int <255; no length
-(deftag t/small-int 12)
+(deftag t/small-uint 12)
+; next byte refers to a a negative int <255; no length
+(deftag t/small-nint 13)
 
 ;; 40 onwards for custom types
 (deftag t/fco-start 40)
 (deftag t/fco-end 41)
+; denotes end of instruction range
+; this means this cannot be an op
+(deftag t/fco-instr-end 42)
+
+;; Definition of opcodes
+;; start from 127, just to ensure difference from the tags
+;; strictly not necessary - as long as some special tag values don't clash with opcodes
+(defopcode0 op/print 127)
+(defopcode0 op/add 128)
+(defopcode1 op/load-value 129)
+(defopcode1 op/load-name 130)
+(defopcode1 op/store-name 131)
 
 (with-open-file (stream "sample.out"
                         :direction :output
@@ -47,11 +66,26 @@
   (write-byte t/fco-start stream)
 
   ;; storing the function name
-  (let* ((name "main"))
+  (let* ((name (name ex1)))
     (write-byte t/short-string stream)
     (write-byte 4 stream)
     (write-sequence (map 'list 'char-code name) stream)
     )
+
+  ;; followed by a list of instructions
+  (dolist (ins (instr ex1))
+    (let* ((opname (car ins))
+           (opname-str (symbol-name opname))
+           (new-str (substitute #\/ #\- opname-str :count 1))
+           (op-sym (eval (read-from-string new-str))))
+      ;; write out the opcode itself
+      (write-byte op-sym stream)
+      ;; write down the argument here, if present
+      ;; for now - assumed to be one byte only
+      (if (eq (length ins) 2)
+        (write-byte (cadr ins) stream))))
+
+  (write-byte t/fco-instr-end stream)
 
   ;; end func co obj
   (write-byte t/fco-end stream)
