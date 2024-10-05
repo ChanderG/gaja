@@ -4,34 +4,45 @@
   (intern (apply #'concatenate 'string
                  (mapcar #'symbol-name symbols))))
 
-(defun handle-expr (exp)
-  (funcall (symbol-append 'ck- (car exp)) exp))
+(defun handle-expr (fco exp)
+  (funcall (symbol-append 'ck- (car exp)) fco exp))
 
-(defun emit (opcode &optional arg)
-  (format t "[~A]: ~A~%" opcode arg))
+(defmethod emit ((fco func-co) &rest opcode)
+  (setf (instr fco) (append (instr fco) (list opcode))))
 
-(defun ck-numeral (exp)
-  (emit 'op-load-value 0))
+(defmethod ck-numeral ((fco func-co) exp)
+  ; save number into consts
+  ; no check for repetition
+  (let* ((curr-consts (consts fco))
+         (len (length curr-consts)))
+    (setf (consts fco) (append curr-consts (cdr exp)))
+    (emit fco 'op-load-value len)))
 
-(defun ck-arith-expr (exp)
+(defmethod ck-arith-expr ((fco func-co) exp)
   (dolist (arg (cdr exp))
-    (handle-expr arg))
-  (emit 'op-add))
+    (handle-expr fco arg))
+  (emit fco 'op-add))
 
 (defun ck-func (func)
-  (let* ((bl (nth 2 func)))
+  (let* ((name (cadr (nth 1 func)))
+         (bl (nth 2 func))
+         (fco (make-func-co name '() '() '())))
     (assert (eq (car bl) 'block))
     (dolist (exp (cdr bl))
-      (handle-expr exp))))
+      (handle-expr fco exp))
+    fco))
 
-(defun compile-kapi (exp)
+(defun compile-kapi (exp &aux (fcos '()))
   (assert (eq (car exp) 'module))
-  (dolist (func (cdr exp))
+  (dolist (func (cdr exp) (car fcos))
     (assert (eq (car func) 'func-defn))
     (assert (eq (car (nth 1 func)) 'ident))
     (format t "Processing function: ~A~%" (cadr (nth 1 func)))
-    (ck-func func)))
+    (push (ck-func func) fcos)))
 
 (defun compile-kapi-file (filename)
-  (with-open-file (stream filename)
-    (compile-kapi (read stream))))
+  (let* ((exp (with-open-file (stream filename)
+                (read stream))))
+    (compile-kapi exp)))
+
+(compile-kapi-file kapi1)

@@ -16,6 +16,13 @@
 (defun make-func-co (name instr consts vars)
   (make-instance 'func-co :name name :instr instr :consts consts :vars vars))
 
+(defmethod print-object ((fco func-co) out)
+  (print-unreadable-object (fco out :type t)
+    (format out "~s~%" (name fco))
+    (format out "~s~%" (instr fco))
+    (format out "~s~%" (consts fco))
+    (format out "~s" (vars fco))))
+
 ; example function code
 (setq ex1
   (make-func-co "add"
