@@ -60,8 +60,11 @@
 (deftag t/small-uint 12)
 ; next byte refers to a a negative int <255; no length
 (deftag t/small-nint 13)
+
 ; end of an array of numbers
 (deftag t/num-array-end 30)
+; end of an array of strings
+(deftag t/str-array-end 31)
 
 ;; 40 onwards for custom types
 (deftag t/fco-start 40)
@@ -92,6 +95,18 @@
          (write-sequence (list t/small-nint (* -1 num)) stream))
         (t (error (format nil "Unhandled number: ~d" num)))))
 
+(defun ser-str-to-stream (stream str)
+  (let* ((len (length str)))
+    (cond
+      ((eq len 1)
+       (write-byte t/char stream)
+       (write-byte (char-code (char str 0)) stream))
+      ((< len 256)
+       (write-byte t/short-string stream)
+       (write-byte len stream)
+       (write-sequence (map 'list 'char-code str) stream))
+      (t (error "Unhandled string format")))))
+
 (defun serialize-co-to-file (fco filename)
   (with-open-file (stream filename
                           :direction :output
@@ -105,11 +120,7 @@
     (write-byte t/fco-start stream)
 
     ;; storing the function name
-    (let* ((name (name fco)))
-      (write-byte t/short-string stream)
-      (write-byte (length name) stream)
-      (write-sequence (map 'list 'char-code name) stream)
-      )
+    (ser-str-to-stream stream (name fco))
 
     ;; followed by a list of instructions
     (dolist (ins (instr fco))
@@ -148,14 +159,23 @@
        (* -1 (read-byte stream)))
       (t (error "Unhandled number")))))
 
+(defun deser-str-from-stream (stream)
+  (let* ((tag (read-byte stream)))
+    (cond
+      ((eq tag t/str-array-end) nil)
+      ((eq tag t/char)
+       (string (code-char (read-byte stream))))
+      ((eq tag t/short-string)
+       (let* ((len (read-byte stream))
+              (seq (make-sequence 'list len)))
+         (read-sequence seq stream)
+         (map 'string 'code-char seq)))
+      (t (error "Unexpected string format")))))
+
 (defun deserialize-fco-from-stream (stream &aux
                                              (fco (make-instance 'func-co)))
   ;; name of a function
-  (assert (eq (read-byte stream) t/short-string))
-  (let* ((len (read-byte stream))
-         (bytes (make-sequence 'list len)))
-    (read-sequence bytes stream)
-    (setf (name fco) (concatenate 'string (mapcar #'code-char bytes))))
+  (setf (name fco) (deser-str-from-stream stream))
 
   ;; instructions
   ;; consumes the last end of instructions byte
