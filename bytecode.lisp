@@ -60,6 +60,8 @@
 (deftag t/small-uint 12)
 ; next byte refers to a a negative int <255; no length
 (deftag t/small-nint 13)
+; end of an array of numbers
+(deftag t/num-array-end 30)
 
 ;; 40 onwards for custom types
 (deftag t/fco-start 40)
@@ -82,6 +84,13 @@
 (setf *magic* (append *magic* '(#x0b #x89 #x09 #x50)))
 ;; specific to our vm
 (setf *magic* (append *magic* (mapcar 'char-code '(#\g #\a #\j #\a))))
+
+(defun ser-number-to-stream (stream num)
+  (cond ((and (>= num 0) (< num 256))
+         (write-sequence (list t/small-uint num) stream))
+        ((and (< num 0) (> num -256))
+         (write-sequence (list t/small-nint (* -1 num)) stream))
+        (t (error (format nil "Unhandled number: ~d" num)))))
 
 (defun serialize-co-to-file (fco filename)
   (with-open-file (stream filename
@@ -117,11 +126,27 @@
 
     (write-byte t/fco-instr-end stream)
 
+    ;; write out the constants
+    (dolist (c (consts fco))
+      (ser-number-to-stream stream c))
+    ;; followed by an end of array tag
+    (write-byte t/num-array-end stream)
+
     ;; end func co obj
     (write-byte t/fco-end stream)
     ))
 
 (serialize-co-to-file ex1 "sample.gaja")
+
+(defun deser-number-from-stream (stream)
+  (let* ((tag (read-byte stream)))
+    (cond
+      ((eq tag t/num-array-end) nil)
+      ((eq tag t/small-uint)
+       (read-byte stream))
+      ((eq tag t/small-nint)
+       (* -1 (read-byte stream)))
+      (t (error "Unhandled number")))))
 
 (defun deserialize-fco-from-stream (stream &aux
                                              (fco (make-instance 'func-co)))
@@ -133,6 +158,7 @@
     (setf (name fco) (concatenate 'string (mapcar #'code-char bytes))))
 
   ;; instructions
+  ;; consumes the last end of instructions byte
   (loop
    (let* ((nxt-byte (read-byte stream)))
      (if (eq nxt-byte t/fco-instr-end)
@@ -145,10 +171,17 @@
            (if (is-opcode1 nxt-byte)
                ;; push the arg in - which means list is reversed
                (push (read-byte stream) opc-list))
-           (push (reverse opc-list) (instr fco)))
-     )))
+           (push (reverse opc-list) (instr fco))))))
   ;; instruction are added in reverse order, so correct it
   (setf (instr fco) (reverse (instr fco)))
+
+  ;; pull out the constants
+  (loop
+    (let* ((num (deser-number-from-stream stream)))
+      (if num
+          (push num (consts fco))
+          (return))))
+  (setf (consts fco) (reverse (consts fco)))
 
   fco
   )
