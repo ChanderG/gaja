@@ -82,11 +82,32 @@
 
 ;; Definition of opcodes
 (defopcode0 op/print)
-(defopcode0 op/add)
 
 (defopcode1 op/load-value)
 (defopcode1 op/load-name)
 (defopcode1 op/store-name)
+(defopcode1 op/binary-op)
+
+;;; encoding of specific arguments
+
+;; binary ops
+(defvar arg-binop-sym-map ())
+(defvar arg-binop-curr 0)
+
+;; macro to define new binary operations
+;; - name is used to create a constant to refer to in our code
+;; - sym is what is expected to be input to the compiler
+;;
+;; apart from the constant, we also have 1 more mappings:
+;; 1. an alist storing sym to number mapping
+;;    - this raw number is needed, since we emit it as bytecode in the compiler
+(defmacro def-arg-binop (name sym)
+  `(progn
+     (defconstant ,name (incf arg-binop-curr))
+     (setf arg-binop-sym-map (acons (quote ,sym) arg-binop-curr arg-binop-sym-map))))
+
+(def-arg-binop arg-binop/plus +)
+(def-arg-binop arg-binop/minus -)
 
 (defvar *magic* '())
 

@@ -24,9 +24,12 @@
     (emit fco 'op-load-name pos)))
 
 (defmethod ck-arith-expr ((fco func-co) exp)
-  (dolist (arg (cdr exp))
-    (handle-expr fco arg))
-  (emit fco 'op-add))
+  (let* ((children (cdr exp))
+         (binop (second (second children)))
+         (binop-num (cdr (assoc binop arg-binop-sym-map))))
+    (handle-expr fco (first children))
+    (handle-expr fco (third children))
+    (emit fco 'op-binary-op binop-num)))
 
 (defmethod ck-print-stmt ((fco func-co) exp)
   (handle-expr fco (second exp))

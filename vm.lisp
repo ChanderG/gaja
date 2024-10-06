@@ -23,10 +23,16 @@
 
 ;; VM operations
 
-(defop op-add
+(defop op-binary-op
   (let* ((arg2 (st-pop))
          (arg1 (st-pop)))
-    (st-push (+ arg1 arg2))))
+    (st-push
+     (cond
+       ((eq arg arg-binop/plus)
+        (+ arg1 arg2))
+       ((eq arg arg-binop/minus)
+        (- arg1 arg2))
+       (t (error "Unsupported binary op"))))))
 
 (defop op-print
   (print (st-pop)))

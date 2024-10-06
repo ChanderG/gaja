@@ -37,7 +37,7 @@ module.exports = grammar({
 
       arith_expr: $ => prec.left(seq(
           $._expr,
-          choice("+", "-"),
+          $.binop,
           $._expr
       )),
 
@@ -54,6 +54,7 @@ module.exports = grammar({
 
       ident: $ => /[a-z]+/,
       numeral: $ => /\d+/,
+      binop: $ => /[\+\-]{1}/
   }
 
 });

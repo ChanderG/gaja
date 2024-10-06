@@ -3,10 +3,10 @@ all: naga hasti gaja
 bindir:
 	mkdir -p bin
 
-hasti: bindir
+hasti: bytecode.lisp compiler.lisp
 	sbcl --load bytecode.lisp --load compiler.lisp --eval "(sb-ext:save-lisp-and-die \"bin/hasti\" :executable t :toplevel 'hasti)"
 
-gaja: bindir
+gaja: bytecode.lisp vm.lisp
 	sbcl --load bytecode.lisp --load vm.lisp --eval "(sb-ext:save-lisp-and-die \"bin/gaja\" :executable t :toplevel 'gaja)"
 
 naga: bindir

@@ -31,7 +31,7 @@ function handle_node(node)
    out:write("(")
 
    n = node:name()
-   if n == "ident" or n == "numeral" then
+   if n == "ident" or n == "numeral" or n == "binop" then
       out:write(n, string.sub(code, node:start_byte(), node:end_byte()))
    else
       -- maybe risky if there is use of _ as an operator
