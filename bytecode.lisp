@@ -16,6 +16,16 @@
     (format out "~s~%" (consts fco))
     (format out "~s" (vars fco))))
 
+(defclass co ()
+  ((name :initarg :name :accessor name)
+   (funcs :initarg :funcs :accessor funcs)))
+
+(defun make-co (name funcs)
+  (make-instance 'co :name name :funcs funcs))
+
+(defmethod co-serialize ((co co))
+  ())
+
 ;;; Serialization formats
 
 (defmacro deftag (name val)
@@ -143,11 +153,17 @@
     ;; followed by an end of array tag
     (write-byte t/num-array-end stream)
 
+    ;; write out the variables
+    (dolist (var (vars fco))
+      ;; convert var symbol to string
+      (ser-str-to-stream stream (symbol-name var)))
+    (write-byte t/str-array-end stream)
+
     ;; end func co obj
     (write-byte t/fco-end stream)
     ))
 
-(serialize-co-to-file ex1 "sample.gaja")
+(serialize-co-to-file ex2 "sample.gaja")
 
 (defun deser-number-from-stream (stream)
   (let* ((tag (read-byte stream)))
@@ -203,8 +219,16 @@
           (return))))
   (setf (consts fco) (reverse (consts fco)))
 
-  fco
-  )
+  ;; pull out the variables
+  (loop
+   (let* ((var (deser-str-from-stream stream)))
+     (if var
+         (push var (vars fco))
+         (return))
+     ))
+  (setf (vars fco) (reverse (vars fco)))
+
+  fco)
 
 (defun deserialize-co-from-file (filename)
   (with-open-file (stream filename
