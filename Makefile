@@ -16,5 +16,5 @@ naga: bindir
 
 clean:
 	rm -rf bin
-	rm out.hasti out.gaja
 	make -C naga/ clean
+	rm -f out.hasti out.gaja

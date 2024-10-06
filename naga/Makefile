@@ -3,5 +3,6 @@ parser:
 	tree-sitter build
 
 clean:
-	rm package.json
+	rm -f package.json
+	rm -f parser.so
 	rm -rf src/
