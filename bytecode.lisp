@@ -23,9 +23,6 @@
 (defun make-co (name funcs)
   (make-instance 'co :name name :funcs funcs))
 
-(defmethod co-serialize ((co co))
-  ())
-
 ;;; Serialization formats
 
 (defmacro deftag (name val)
@@ -130,7 +127,7 @@
     (write-byte t/fco-start stream)
 
     ;; storing the function name
-    (ser-str-to-stream stream (name fco))
+    (ser-str-to-stream stream (symbol-name (name fco)))
 
     ;; followed by a list of instructions
     (dolist (ins (instr fco))
@@ -162,8 +159,6 @@
     ;; end func co obj
     (write-byte t/fco-end stream)
     ))
-
-(serialize-co-to-file ex2 "sample.gaja")
 
 (defun deser-number-from-stream (stream)
   (let* ((tag (read-byte stream)))
@@ -245,28 +240,3 @@
 
     (deserialize-fco-from-stream stream)
     ))
-
-(deserialize-co-from-file "sample.gaja")
-
-; example function code
-(setq ex1
-  (make-func-co "add"
-    '((op-load-value 0)
-     (op-load-value 1)
-     (op-add)
-     (op-print))
-    '(7 5)
-    '()))
-
-(setq ex2
-      (make-func-co "add-vars"
-                    '((op-load-value 0)
-                      (op-store-name 0)
-                      (op-load-value 1)
-                      (op-store-name 1)
-                      (op-load-name 0)
-                      (op-load-name 1)
-                      (op-add)
-                      (op-print))
-                    '(1 2)
-                    '(a b)))

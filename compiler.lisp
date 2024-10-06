@@ -67,5 +67,14 @@
                 (read stream))))
     (compile-kapi exp)))
 
-(setq kapi1 "./parser/out.kapi")
-(compile-kapi-file kapi1)
+(defun hasti ()
+  (let* ((input (second *posix-argv*))
+         (output (third *posix-argv*))
+         (output (if (not output) "out.gaja")))
+    (if (not input)
+        (progn
+            (format t "Usage: hasti <input> [<output>]~%")
+            (format t "No input passed, quitting.~%")
+            (quit)))
+    (format t "Compiling ~A to ~A.~%" input output)
+    (serialize-co-to-file (compile-kapi-file input) output)))

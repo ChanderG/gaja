@@ -1,15 +1,21 @@
 #!/usr/bin/env lua
 local lts = require("ltreesitter")
-local par = lts.load("./parser.so", "naga")
+
+local so_dir = os.getenv("NAGA_BIN_DIR")
+if so_dir == nil then
+   so_dir = "."
+end
+
+local par = lts.load(so_dir .. "/parser.so", "naga")
 
 if arg[1] == nil then
-   print("Usage: parser <infile> [<outfile>]")
+   print("Usage: naga <infile> [<outfile>]")
    print("Missing input file name! Unable to proceed.")
    os.exit()
 end
 
 if arg[2] == nil then
-   outfile = "out.kapi"
+   outfile = "out.hasti"
 else
    outfile = arg[2]
 end
